@@ -1,0 +1,68 @@
+# =====================================================================
+# settings.yaml -- machine-agnostic defaults.
+# Anything that differs between your laptop and the GPU server should be
+# an ENV VAR instead (see gmt/core/config.py for the list), not edited here.
+# =====================================================================
+
+project:
+  name: garment-ai
+  # Bump this when you change a contract in a breaking way. It is stamped
+  # onto every row written to the store, so old and new rows stay tellable
+  # apart. This is how you avoid "why does 2024 data look different" later.
+  schema_version: 1
+
+store:
+  # The SINGLE GROUND TRUTH. One file, zero servers, stdlib sqlite3.
+  # To move to Postgres/DuckDB later you only reimplement gmt/core/store.py;
+  # nothing else in the repo knows what the backend is.
+  backend: sqlite
+  path: data/garment.db
+
+ollama:
+  host: http://localhost:11434
+  # MEASURED: 14B Q4 on a 1080 Ti runs ~15 tok/s, and text_to_sql sends the
+  # whole schema, so a single call can take 10-15 s. 120 s is generous but
+  # a batch that trips the timeout retries and costs far more than it saves.
+  timeout_s: 120
+  # keep_alive keeps the weights resident on the GPU between calls.
+  # Without it Ollama unloads after 5 min and your next batch pays a
+  # 10-30s reload. For a batch job set this generously.
+  keep_alive: 30m
+
+anthropic:
+  # Tier 3. Only reached when a task is marked as needing it, or when a
+  # smaller model has already failed. Leave the key unset to disable.
+  model: claude-sonnet-5
+  max_tokens: 4096
+
+runtime:
+  # Default parallelism for the async runner.
+  #
+  # MEASURED on hanalytics (2026-08-21), not estimated:
+  #   cards        GTX 1080 Ti 11.26 GB  +  RTX 2080 Ti 11.26 GB
+  #   model        qwen2.5-coder:14b Q4_K_M, 9.0 GB of weights
+  #   `/api/ps` reported 10.27 GB RESIDENT at num_ctx 8192, concurrency 1
+  #                = 91% of one card, with ~1 GB of headroom left.
+  #
+  # So a second concurrent request does NOT fit: it needs another ~1.3 GB
+  # of KV cache and there is only ~1 GB spare. Ollama will not error -- it
+  # silently spills to system RAM and gets roughly 10x slower, which is the
+  # worst possible failure mode because it looks like it is working.
+  #
+  #   num_ctx 8192, concurrency 1   ->  10.27 GB   fits  (verified)
+  #   num_ctx 8192, concurrency 2   ->  ~11.6 GB   SPILLS
+  #   num_ctx 4096, concurrency 2   ->  ~10.3 GB   should fit (untested)
+  #
+  # Keep this at 1 on these cards until you have watched `nvidia-smi` during
+  # a real batch. The way to get real parallelism here is not a bigger
+  # number -- it is putting a SECOND, SMALLER model on the SECOND card
+  # (see the tier-1 note in models.yaml), so tier 1 and tier 2 run at once.
+  concurrency: 1
+  retries: 2
+  offline: false
+
+logging:
+  level: INFO
+  # Every task run is appended to this table in the store. Turning this off
+  # saves nothing meaningful and costs you your evaluation dataset.
+  trace: true

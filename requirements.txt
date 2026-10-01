@@ -1,0 +1,35 @@
+# =====================================================================
+# NOTHING HERE IS REQUIRED.
+#
+# The harness core runs on a bare Python 3.9 standard library:
+#   sqlite3  the ground-truth database
+#   urllib   talking to Ollama and Anthropic
+#   asyncio  the concurrent runner
+#   json     contracts and MCP
+#
+# That is deliberate. You can scp this folder to the GPU server and run
+# `python3 -m gmt doctor` before installing anything at all.
+#
+# Install the extras only when you reach the feature that needs them.
+# =====================================================================
+
+# --- vision: the frame_gate task -------------------------------------
+opencv-python-headless>=4.8    # headless: no GUI libs, right for a server
+numpy>=1.24
+
+# --- vision: the defect_cnn task -------------------------------------
+# Install the build that matches YOUR cuda version, from pytorch.org.
+# torch>=2.1
+
+# --- nicety: real YAML instead of the built-in mini parser -----------
+# Needed only if you start using YAML features beyond nested maps,
+# lists and scalars (anchors, multi-line blocks, flow sequences).
+PyYAML>=6.0
+
+# --- analysis notebooks ----------------------------------------------
+# pandas>=2.0
+# matplotlib>=3.7
+
+# --- if you outgrow sqlite (see gmt/core/store.py for the signals) ---
+# duckdb>=0.10          single-box analytics over 10M+ rows
+# psycopg[binary]>=3.1  multi-writer / multi-user

@@ -1,0 +1,95 @@
+# =====================================================================
+# models.yaml -- THE ESCALATION LADDER
+#
+# The core idea of this whole repo: most jobs do not need a big model.
+# Split work into atomic tasks, give each the SMALLEST tier that passes
+# its contract, and only escalate when validation fails.
+#
+#   tier  where        typical model      good at                cost   speed
+#   ----  -----------  -----------------  ---------------------  -----  ------
+#   0     pure python  (none)             regex, opencv, SQL      free   ~1ms
+#   1     your GPU     qwen2.5:3b         classify, tag, route    free   ~0.2s
+#   2     your GPU     qwen2.5:14b        extract, summarize,     free   ~2s
+#                                         write SQL, rewrite
+#   3     cloud        claude-sonnet-5    plan, design schemas,   $$     ~5s
+#                                         ambiguous judgement,
+#                                         writing new tasks
+#
+# Escalation is automatic and one step at a time:
+#     T1 fails contract -> retry T1 once -> T2 -> T3 -> give up, flag human
+# =====================================================================
+
+models:
+  tier1:
+    # NOT INSTALLED YET.  ->  ollama pull qwen2.5:3b
+    #
+    # Worth doing, for two measured reasons:
+    #  1. classify_defect scored 16/16 on the 14B. A task that easy is a
+    #     task a 3B can almost certainly do, at ~10x the speed.
+    #  2. hanalytics has TWO 11 GB cards and the 14B only fills one. A 3B
+    #     (~2 GB) lands on the second card, so tier 1 and tier 2 then run
+    #     genuinely in parallel instead of queueing behind each other.
+    #     That is how you get concurrency on this box -- not by raising
+    #     runtime.concurrency, which just overflows one card.
+    provider: ollama
+    model: qwen2.5:3b
+    # host: http://localhost:11435   # <- uncomment for the two-server setup
+    options:
+      temperature: 0.0       # near-zero for extraction/classification. Always.
+      num_ctx: 4096
+      num_predict: 512
+
+  # ---------------------------------------------------------------------
+  # PINNING A MODEL TO A SPECIFIC GPU
+  #
+  # MEASURED on hanalytics: Ollama assigns a backend per card (2080 Ti ->
+  # CUDA, 1080 Ti -> Vulkan) and then picks the card with the MOST FREE
+  # VRAM. Both cards are ~11 GB and the 1080 Ti reports slightly more free
+  # (11379 vs 10838 MiB), so the big model lands on the Vulkan card no
+  # matter what order you load in. Load order does NOT control this.
+  #
+  # Ollama has no per-model GPU setting. The way to force it is one server
+  # per card, and a `host:` on each tier:
+  #
+  #   # terminal 1 -- the 2080 Ti (CUDA), for the big model
+  #   CUDA_VISIBLE_DEVICES=1 OLLAMA_HOST=127.0.0.1:11434 \
+  #     OLLAMA_NUM_PARALLEL=1 ollama serve
+  #
+  #   # terminal 2 -- the 1080 Ti, for the small model
+  #   CUDA_VISIBLE_DEVICES=0 OLLAMA_HOST=127.0.0.1:11435 \
+  #     OLLAMA_NUM_PARALLEL=1 ollama serve
+  #
+  # then set `host:` on tier1 to :11435 and leave tier2 on the default.
+  # Caveat: CUDA_VISIBLE_DEVICES hides cards from CUDA but not necessarily
+  # from Vulkan, so verify with nvidia-smi before trusting it.
+  #
+  # DO THIS ONLY IF GPU TIME IS ACTUALLY YOUR BOTTLENECK. Two servers is
+  # two things to restart, monitor and get wrong. One server placing the
+  # model on the "wrong" card costs you some tokens per second; it does not
+  # cost you correctness.
+  # ---------------------------------------------------------------------
+  tier2:
+    provider: ollama
+    model: qwen2.5-coder:14b # what is actually installed (a CODE model)
+    # host: http://localhost:11434
+    options:
+      temperature: 0.0
+      # 8192 fits alongside 9 GB of weights on an 11 GB card at
+      # concurrency 1. If you raise runtime.concurrency, drop this to 4096
+      # or the KV cache spills to system RAM and everything gets ~10x
+      # slower without any error message.
+      num_ctx: 8192
+      num_predict: 1024
+
+  tier3:
+    provider: anthropic
+    model: claude-sonnet-5
+    options:
+      temperature: 0.0
+
+  # A deterministic stand-in used by tests and by `make demo-offline`.
+  # It replays canned answers so the whole pipeline runs with no GPU at all.
+  fake:
+    provider: fake
+    model: fake
+    options: {}

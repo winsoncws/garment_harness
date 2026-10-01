@@ -1,0 +1,21 @@
+[package]
+name = "gmt_fast"
+version = "0.1.0"
+edition = "2021"
+
+# cdylib = build a shared library that Python can import.
+# The name here must match the `#[pymodule]` function name in src/lib.rs.
+[lib]
+name = "gmt_fast"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 generates the C-API glue between Rust and CPython.
+# `abi3-py39` builds ONE wheel that works on python 3.9 and every later
+# version -- without it you need a separate build per python version.
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py39"] }
+
+[profile.release]
+opt-level = 3
+lto = true          # link-time optimisation: ~10-20% on numeric loops
+codegen-units = 1   # slower to build, faster to run

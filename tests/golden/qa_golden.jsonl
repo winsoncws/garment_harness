@@ -1,0 +1,16 @@
+{"text": "Loom 7 shift A - big oil smear down the selvedge, about 2m of it. denim roll DN-0912", "label": "oil_mark", "machine": "LOOM-07", "shift": "A", "roll_id": "DN-0912", "yarn_lot": ""}
+{"text": "roll checked all clean no issue", "label": "none", "machine": "", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "L7 3rd shift, roll RB-4412, 60/40 pc, oil at 88.5m, 2 pcs", "label": "oil_mark", "machine": "LOOM-07", "shift": "C", "roll_id": "RB-4412", "yarn_lot": ""}
+{"text": "knitting m/c 12 night shift, drop stitch, 3 places", "label": "drop_stitch", "machine": "KNIT-12", "shift": "C", "roll_id": "", "yarn_lot": ""}
+{"text": "warp break at 88m loom 3, machine stopd. end down again same position as ystdy", "label": "broken_end", "machine": "LOOM-03", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "shade diff between left n right side, dye jigger 2, viscose lot VL-3301. reject", "label": "shade_variation", "machine": "DYE-02", "shift": "unknown", "roll_id": "", "yarn_lot": "VL-3301"}
+{"text": "loom 7 - slub in weft, 3 yards from start, cotton", "label": "slub", "machine": "LOOM-07", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "nothing to report, m/c running fine", "label": "none", "machine": "", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "hole in fabric roll CT-2201 at 45 metres, size abt 2 inch. loom 3 shift B", "label": "hole", "machine": "LOOM-03", "shift": "B", "roll_id": "CT-2201", "yarn_lot": ""}
+{"text": "crease line running whole length after stenter 2, poly knit", "label": "crease", "machine": "FIN-02", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "loom 3 broken pick 120 m mark, weft snapped, 1 pc", "label": "broken_pick", "machine": "LOOM-03", "shift": "unknown", "roll_id": "", "yarn_lot": ""}
+{"text": "foreign fibre contamination found, black fluff in white cotton, yarn lot YL-88 from Anhui Textile. loom 3", "label": "contamination", "machine": "LOOM-03", "shift": "unknown", "roll_id": "", "yarn_lot": "YL-88"}
+{"text": "snag on roll RB-4420, pulled thread 15 cm, handling damage during doffing. shift B", "label": "snag", "machine": "", "shift": "B", "roll_id": "RB-4420", "yarn_lot": ""}
+{"text": "l3 float defect 12 inch from edge, roll CT-2210, second shift", "label": "float", "machine": "LOOM-03", "shift": "B", "roll_id": "CT-2210", "yarn_lot": ""}
+{"text": "thick place / lump in yarn every few metres, spinning issue. yarn lot YL-88 again. loom 7", "label": "slub", "machine": "LOOM-07", "shift": "unknown", "roll_id": "", "yarn_lot": "YL-88"}
+{"text": "loom 7 running clean whole shift, no defect", "label": "none", "machine": "LOOM-07", "shift": "unknown", "roll_id": "", "yarn_lot": ""}

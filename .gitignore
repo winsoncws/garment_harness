@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.env
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/frames/
+models/
+.venv/
+.DS_Store
+.ipynb_checkpoints

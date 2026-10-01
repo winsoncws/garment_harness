@@ -1,0 +1,72 @@
+# =====================================================================
+# routing.yaml -- which tier each task starts at, and how far it may climb.
+#
+# Read this as a decision table. The runner consults it on every call:
+#
+#          +--------------------+
+#   task ->| start_tier from    |-> run -> validate contract -+
+#          | this file          |                             |
+#          +--------------------+                             |
+#                    ^                                     ok |  fail
+#                    |                                        v    v
+#                    +---------------- escalate <---------- done  tier+1
+#                                       (up to max_tier)
+#
+# Tuning advice: start everything one tier HIGHER than you think, measure
+# with `scripts/bench.py`, then push tiers down where the small model wins.
+# Guessing tiers up front is how you end up with silent quality loss.
+# =====================================================================
+
+routing:
+  # Global ceiling. Set GMT_MAX_TIER=2 on the factory-floor box so it can
+  # physically never call out to the cloud. Data residency, solved.
+  max_tier: 3
+  default_start_tier: 2
+  escalate_on_invalid: true
+  retries_per_tier: 1
+
+  tasks:
+    # -- tier 0: no LLM at all --------------------------------------------
+    normalize_units:        { start: 0, max: 0 }
+    frame_gate:             { start: 0, max: 0 }
+    defect_cnn:             { start: 0, max: 0 }
+
+    # -- tier 1: closed-vocabulary decisions ------------------------------
+    #
+    # MEASURED 2026-08-21 on hanalytics, 16 golden rows:
+    #     tier 1 (qwen2.5:3b)        acc 0.88   861 ms
+    #     tier 2 (qwen2.5-coder:14b) acc 1.00  2618 ms
+    #
+    # The 3B is 3x faster and gets 2 of 16 wrong. Left at tier 2 anyway,
+    # for two reasons:
+    #
+    #  1. n=16. The gap between 0.88 and 1.00 is TWO examples. That is not
+    #     a real measurement, it is noise with a decimal point. Revisit at
+    #     100+ golden rows.
+    #  2. ESCALATION DOES NOT SAVE YOU HERE. The ladder retries on output
+    #     that fails its CONTRACT, not on output that is merely WRONG. A
+    #     confident, well-formed, incorrect label passes validation and is
+    #     stored. So running this at tier 1 means accepting ~12% wrong
+    #     labels, not "12% that get escalated".
+    #
+    # And classification gates the whole pipeline -- a wrong 'none' drops
+    # the note entirely. Pay the 1.8 s.
+    classify_defect:        { start: 2, max: 2 }
+    route_question:         { start: 1, max: 2 }
+
+    # -- tier 2: structured generation ------------------------------------
+    #
+    # MEASURED 2026-08-21, 16 golden rows, machine / shift / roll / yarn_lot:
+    #     tier 1 (3b)   0.56 / 0.69 / 0.94 / 0.94   987 ms   (1 contract fail)
+    #     tier 2 (14b)  0.94 / 1.00 / 1.00 / 1.00  3780 ms   (0 contract fails)
+    # Not close. Extraction stays at tier 2.
+    extract_defect_fields:  { start: 2, max: 3 }
+    extract_triples:        { start: 2, max: 3 }
+    text_to_sql:            { start: 2, max: 3 }
+
+    # -- tier 3: judgement, design, ambiguity -----------------------------
+    summarize_shift:        { start: 2, max: 3 }
+    propose_new_task:       { start: 3, max: 3 }
+
+    # -- added with the analytics chatbot ---------------------------------
+    answer_from_rows:       { start: 1, max: 2 }
